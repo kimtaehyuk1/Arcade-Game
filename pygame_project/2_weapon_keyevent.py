@@ -43,21 +43,23 @@ character_x_pos = (screen_width / 2) - (character_width / 2)#화면 가로의 �
 character_y_pos = screen_height - character_height - stage_height  #스테이지 위에 놓이도록
 # 배경은 (0,0)으로 해서 오른쪽 밑으로 퍼지면서 그려졌다. 즉 캐릭터도 그 생길 위치를 계산해서 오른쪽 밑으로 퍼지면서 그려줘야된다.
 
-#이동할 좌표
-to_x = 0
-to_y = 0
+# 캐릭터가 이동할 좌표
+character_to_x = 0
+
 
 #이동속도
-character_speed = 0.6
+character_speed = 5
 
-#적 enemy 캐릭터
-enemy = pygame.image.load("C:/Users/98tae/OneDrive/바탕 화면/PythonWorkspace/Arcade-Game/pygame_basic/enemy.png")
-enemy_size = enemy.get_rect().size #이렇게 적으면 캐릭터 가로 세로 가 얼만지 구해옴
-enemy_width = enemy_size[0]
-enemy_height = enemy_size[1]
-enemy_x_pos = (screen_width / 2) - (enemy_width / 2)#화면 가로의 절반 크기에 해당하는 곳에 위치(가로)
-enemy_y_pos = (screen_height / 2) - (enemy_height / 2) #화면 세로크기 가장 아래에(세로)
+#무기 만들기
+weapon = pygame.image.load(os.path.join(image_path, "weapon.png"))
+weapon_size = weapon.get_rect().size
+weapon_width = weapon_size[0] 
 
+# 무기는 한 번에 여러 발 발사 가능
+weapons = []
+
+#무기 이동 속도
+weapon_speed = 10
 
 # 폰트 정의
 game_font = pygame.font.Font(None, 40) #폰트 객체 생성 (폰트,크기)
@@ -83,59 +85,64 @@ while running:
 
         if event.type == pygame.KEYDOWN:  #대문자 주의 이렇게 했을때는 즉 키보드 눌렀을때 밑에는 어떤 키보드 눌렸는지 확인하는거 집어넣기
             if event.key == pygame.K_LEFT: #캐릭터를 왼쪽으로
-                to_x -= character_speed
+                character_to_x -= character_speed
             elif event.key == pygame.K_RIGHT: #캐릭터 오른쪽으로
-                to_x += character_speed
-            elif event.key == pygame.K_UP: #캐릭터 위
-                to_y -= character_speed
-            elif event.key == pygame.K_DOWN: #캐릭터 아래로
-                to_y += character_speed 
+                character_to_x += character_speed
+            elif event.key == pygame.K_SPACE: #무기 발사
+                weapon_x_pos = character_x_pos + (character_width / 2) - (weapon_width / 2) #캐릭터의 위치가 계속 바뀌니까 무기 위치 계속 바뀜
+                weapon_y_pos = character_y_pos
+                weapons.append([weapon_x_pos, weapon_y_pos]) #weapons에는 x,y값이 묶여져가지고 들어가있다.
 
+        
         if event.type == pygame.KEYUP: #방향키를 떼면 멈춤
             if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-                to_x = 0
-            elif event.key == pygame.K_UP or event.key == pygame.K_DOWN:
-                to_y = 0
+                character_to_x = 0
+            
 
     #3. 게임 캐릭터 위치 정의
-    character_x_pos += to_x * dt
-    character_y_pos += to_y * dt
+    character_x_pos += character_to_x
+    
 
     #가로 경계값 처리
     if character_x_pos < 0:
         character_x_pos = 0
     elif character_x_pos > screen_width - character_width: #오른쪽에 붙어있을땐  옆과 같이 해줘야 화면 안나감 (쫌 생각해보기)
         character_x_pos = screen_width - character_width
-    #세로 경계값 처리
-    if character_y_pos < 0:
-        character_y_pos = 0
-    elif character_y_pos > screen_height - character_height:
-        character_y_pos = screen_height - character_height
+
+    # 무기 위치 조정
+    weapons = [ [w[0], w[1] - weapon_speed] for w in weapons] # 무기 위치를 위로 !! 우선 한줄 for가 쓰였다.
+    #설명: weapons에 있는 List에 있는 값들을 불러와서 w라고 하고, 그 w에 있는 값을 통해서 for 왼쪽의 처리를 한다, 
+    # 뭘 처리하냐? w는 무기의 x,y좌표를 갖는 또다른 리스트인데, 리스트에서 0번째 인덱스의 값(즉 무기의 x는 변함없다.), 
+    # 1번째 인덱스에 있는 값(y값은 스피드에 따라서 사라 져야 되니까) 에서 스피드를 뺸 값 이 두개를
+    #엮어서 또다른 하나의 리스트로 감싼다.
+    # 처리 한것들을 다시 weapons에 집어 넣는다.
+    
+    #천장에 닿은 무기 없애기
+    weapons = [ [w[0], w[1] ] for w in weapons if w[1] > 0 ] #즉 y좌표가 스크린 안에 있을때만이라는 조건 달고 weapons의 x,y포지션만 뿌린다라는 뜻으로 받아드리자!
+
+    ##여기져기 weapons썼다고 언제 누가 실행되냐 이런 문제가 아니라 걍 weapons에 대한 조건을 계속 달아준다고 생각하기
+
+
 
     #4. 충돌 처리
     #충돌처리
-    character_rect = character.get_rect()
-    character_rect.left = character_x_pos
-    character_rect.top = character_y_pos
-
-    enemy_rect = enemy.get_rect()
-    enemy_rect.left = enemy_x_pos
-    enemy_rect.top = enemy_y_pos
+   
 
     #충돌 체크
-    if character_rect.colliderect (enemy_rect): #캐릭터가 적이랑 충돌을 했느냐 확인
-        print("충돌했어요")
-        running = False
+    
 
     #5. 화면에 그리기
 
     screen.blit(background, (0,0)) #백드라운드 이미지가 어디 좌표 0,0에서 부터 blit하면 배경 그려준다. 오른쪽 밑으로 퍼지면서 이미지 그려짐
 
+    for weapon_x_pos, weapon_y_pos in weapons: #무기 쏘아지는게 계속 바뀌니까 for로 screen 그려주기
+        screen.blit(weapon, (weapon_x_pos, weapon_y_pos))
+
     screen.blit(stage, (0,screen_height - stage_height))
 
     screen.blit(character, (character_x_pos, character_y_pos)) #캐릭터 그리기
 
-    screen.blit(enemy, (enemy_x_pos, enemy_y_pos))  #적 그리기
+    
 
     #타이머 집어 넣기
     #경과 시간 계산
