@@ -84,12 +84,16 @@ balls.append({
     "init_spd_y" : ball_speed_y[0]}) #y로 최초 속도 즉 공마다 위로 올라가는 속도 다르다
 
 
+#사라질 무기와 공 정보 저장 변수
+weapon_to_remove = -1
+ball_to_remove = -1
+
 
 # 폰트 정의
 game_font = pygame.font.Font(None, 40) #폰트 객체 생성 (폰트,크기)
 
 #총 시간
-total_time = 10
+total_time = 100
 
 #시작 시간 정보
 start_ticks = pygame.time.get_ticks() #시작 tick 을 받아옴
@@ -175,10 +179,83 @@ while running:
 
     #4. 충돌 처리
     #충돌처리
-   
+    #캐릭터 rect 정보 업데이트
+    character_rect = character.get_rect()
+    character_rect.left = character_x_pos
+    character_rect.top = character_y_pos
 
-    #충돌 체크
-    
+    for ball_idx, ball_val in enumerate(balls): #이것은 볼 리스트있는거 가져와서 현재 볼리스트에 있는 몇번쨰 인덱스인지 또 값을 출력
+        ball_pos_x = ball_val["pos_x"]
+        ball_pos_y = ball_val["pos_y"]
+        ball_img_idx = ball_val["img_idx"]
+
+        #공 rect 정보 업데이트
+        ball_rect = ball_images[ball_img_idx].get_rect()
+        ball_rect.left = ball_pos_x
+        ball_rect.top = ball_pos_y
+
+        #공과 캐릭터 충돌 체크
+        if character_rect.colliderect(ball_rect):
+            running = False
+            break
+
+        #공과 무기들 충돌 처리 이것도 무기들이 많을수 있으니까 for으로
+        for weapon_idx, weapon_val in enumerate(weapons):
+            weapon_pos_x =  weapon_val[0]
+            weapon_pos_y =  weapon_val[1]
+
+            #무기 rect 정보 업데이트
+            weapon_rect = weapon.get_rect()
+            weapon_rect.left = weapon_pos_x
+            weapon_rect.top = weapon_pos_y
+
+            #충돌 체크
+            if weapon_rect.colliderect(ball_rect):
+                weapon_to_remove = weapon_idx #현재 무기 인덱스 값 넣줌 ; 해당무기 없애기 위한 값 설정
+                ball_to_remove = ball_idx #해당 공 없애기 위한 값 설정
+
+                if ball_img_idx < 3:  #가장 작은공이 아니라면 다음 단계의 공으로 나눠주는 역활
+
+                    #현재 공 크기 정보를 가지고 옴
+                    ball_width = ball_rect.size[0]
+                    ball_height = ball_rect.size[1]
+
+                    #나눠진 공 정보
+                    small_ball_rect = ball_images[ball_img_idx + 1].get_rect() #나눠진 공이니까 ball_img_idx에서 +1하면 더 작은공 가져와짐
+                    small_ball_width = small_ball_rect.size[0]
+                    small_ball_height = small_ball_rect.size[1] 
+
+                    #왼쪽으로 튕겨나가는 작은 공
+                    balls.append({
+                        "pos_x" : ball_pos_x + (ball_width / 2) - (small_ball_width / 2 ), #이렇게 해야 가운데서 쪼개지는데 더하여 왼쪽으로 가는거 처럼!
+                        "pos_y" : ball_pos_y + (ball_height / 2) - (small_ball_height / 2),
+                        "img_idx" : ball_img_idx + 1, # 작은거 나와야 되니까
+                        "to_x" : -3, #공의 x축 이동방향 -는 왼쪽 +면 오른쪽으로 간다.
+                        "to_y" : -6, #y축 이동방향 살짝 올라갔다 내려오는 그 속도
+                        "init_spd_y" : ball_speed_y[ball_img_idx + 1]}) #y로 최초 속도 즉 공마다 위로 올라가는 속도 다르다
+
+                    #오른쪽으로 튕겨나가는 작은 공
+                    balls.append({
+                        "pos_x" : ball_pos_x + (ball_width / 2) - (small_ball_width / 2 ), #이렇게 해야 가운데서 쪼개지는데 더하여 왼쪽으로 가는거 처럼!
+                        "pos_y" : ball_pos_y + (ball_height / 2) - (small_ball_height / 2),
+                        "img_idx" : ball_img_idx + 1, # 작은거 나와야 되니까
+                        "to_x" : +3, #공의 x축 이동방향 -는 왼쪽 +면 오른쪽으로 간다.
+                        "to_y" : -6, #y축 이동방향 살짝 올라갔다 내려오는 그 속도
+                        "init_spd_y" : ball_speed_y[ball_img_idx + 1]}) #y로 최초 속도 즉 공마다 위로 올라가는 속도 다르다   
+
+
+                break
+
+    #충돌된 공 혹은 무기 없애기
+    if ball_to_remove > -1: #위의 ball인덱스는 0 1 2 3 이렇게 될거기 때문에 즉 충돌하면 위의 충돌체크 메소드의 값이 들어가버리니까 -1 에서 0보다 숫자가 큰 것으로 바뀔것이다.
+        del balls[ball_to_remove]
+        ball_to_remove = -1 #이렇게 해야 다시 돌기 때문에
+
+    if weapon_to_remove > -1:
+        del weapons[weapon_to_remove]
+        weapon_to_remove = -1
+ 
+
 
     #5. 화면에 그리기
 
